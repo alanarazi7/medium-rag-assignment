@@ -3,3 +3,4 @@ pinecone>=3.0.0
 tiktoken
 pandas
 tqdm
+python-dotenv

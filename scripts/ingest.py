@@ -1,10 +1,7 @@
 """One-time ingestion script: chunk articles, embed, upsert to Pinecone.
 
 Usage:
-    export OPENAI_API_KEY=...
-    export OPENAI_BASE_URL=...          # course endpoint base URL
-    export PINECONE_API_KEY=...
-    export PINECONE_INDEX_NAME=medium-articles
+    # Copy .env.example to .env and fill in your credentials, then:
 
     # Test with 100 articles first:
     python scripts/ingest.py --csv /path/to/medium-english-50mb.csv --limit 100
@@ -16,6 +13,9 @@ Usage:
 import argparse
 import os
 import time
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import pandas as pd
 import tiktoken

@@ -33,15 +33,34 @@ MIN_CHUNK_TOKENS = 50
 
 
 def chunk_text(text: str, enc) -> list[str]:
-    tokens = enc.encode(text)
-    overlap = int(CHUNK_SIZE * OVERLAP_RATIO)
-    stride = CHUNK_SIZE - overlap
+    paragraphs = [p.strip() for p in text.split('\n') if len(p.strip()) > 0]
+    overlap_budget = int(CHUNK_SIZE * OVERLAP_RATIO)
+
     chunks = []
-    for i in range(0, len(tokens), stride):
-        token_slice = tokens[i : i + CHUNK_SIZE]
-        if len(token_slice) < MIN_CHUNK_TOKENS:
-            break
-        chunks.append(enc.decode(token_slice))
+    current: list[str] = []
+    current_tokens = 0
+
+    for para in paragraphs:
+        para_tokens = len(enc.encode(para))
+        if current_tokens + para_tokens > CHUNK_SIZE and current:
+            chunks.append('\n\n'.join(current))
+            # Carry trailing paragraphs into next chunk up to overlap budget
+            overlap: list[str] = []
+            overlap_tokens = 0
+            for p in reversed(current):
+                t = len(enc.encode(p))
+                if overlap_tokens + t > overlap_budget:
+                    break
+                overlap.insert(0, p)
+                overlap_tokens += t
+            current = overlap + [para]
+            current_tokens = overlap_tokens + para_tokens
+        else:
+            current.append(para)
+            current_tokens += para_tokens
+
+    if current_tokens >= MIN_CHUNK_TOKENS:
+        chunks.append('\n\n'.join(current))
     return chunks
 
 

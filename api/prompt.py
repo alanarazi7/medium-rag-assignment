@@ -8,7 +8,7 @@ from pinecone import Pinecone
 CHUNK_SIZE = 512
 OVERLAP_RATIO = 0.2
 TOP_K = 5
-MAX_CHUNKS_PER_ARTICLE = 2
+MAX_CHUNKS_PER_ARTICLE = 3
 
 SYSTEM_PROMPT = (
     "You are a Medium-article assistant that answers questions strictly and only "

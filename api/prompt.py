@@ -7,7 +7,7 @@ from pinecone import Pinecone
 
 CHUNK_SIZE = 512
 OVERLAP_RATIO = 0.2
-TOP_K = 5
+TOP_K = 8
 MAX_CHUNKS_PER_ARTICLE = 3
 
 SYSTEM_PROMPT = (

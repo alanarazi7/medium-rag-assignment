@@ -16,7 +16,7 @@ from pinecone import Pinecone
 
 EMBEDDING_MODEL = "4UHRUIN-text-embedding-3-small"
 CHAT_MODEL = "4UHRUIN-gpt-5-mini"
-TOP_K = 5
+TOP_K = 8
 MAX_CHUNKS_PER_ARTICLE = 3
 
 SYSTEM_PROMPT = (

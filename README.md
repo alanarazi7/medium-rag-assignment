@@ -20,7 +20,7 @@ We instead use **Vercel's Python serverless runtime**: each file in `api/` becom
 |-----------|-------|-----------|
 | `chunk_size` | 512 tokens | Focused, single-topic chunks; better embedding signal than 1024 |
 | `overlap_ratio` | 0.2 | 102-token overlap bridges chunk boundaries without bloating index |
-| `top_k` | 5 | Sufficient for all 4 query types; avoids padding context with noise |
+| `top_k` | 8 | Covers all 4 query types with headroom; with C=3, guarantees at least 3 distinct articles |
 | `max_chunks_per_article` | 3 | Ensures retrieval diversity while still allowing deep context on a single article for summary queries |
 
 For multi-result queries (type 2: "list 3 articles"), over-fetching 15 candidates (top_k × 3) and capping at 3 chunks per article guarantees at least 2 distinct articles in every response.

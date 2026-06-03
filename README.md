@@ -1,65 +1,153 @@
 # Medium Article RAG Assistant
 
-A Retrieval-Augmented Generation system over ~7,600 Medium articles, deployed as a public API on Vercel.
+A Retrieval-Augmented Generation (RAG) system over ~7,600 Medium articles. Given a natural language question, it retrieves the most relevant article passages from a Pinecone vector index and answers strictly from that context using a chat model.
 
 ## Live URLs
 
-- **App / Demo UI**: `https://medium-rag-assignment.vercel.app/`
+- **Demo UI**: `https://medium-rag-assignment.vercel.app/`
 - **POST** `https://medium-rag-assignment.vercel.app/api/prompt`
 - **GET** `https://medium-rag-assignment.vercel.app/api/stats`
 
-## Deployment Decision
+---
 
-The assignment requires two public REST endpoints (`POST /api/prompt`, `GET /api/stats`) hosted on **Vercel**. We initially considered Streamlit, but Streamlit runs a stateful WebSocket server and cannot expose standard REST endpoints — so it does not satisfy the API contract the grader tests.
+## How It Works
 
-We instead use **Vercel's Python serverless runtime**: each file in `api/` becomes a standalone function invoked per HTTP request. This is purely Python (no Node.js needed), scales automatically, and exposes exactly the endpoints required. A lightweight HTML demo page at `/` serves as the interactive front-end, calling the same `/api/prompt` endpoint from the browser.
+```
+Question
+   │
+   ▼
+Embed with text-embedding-3-small (1536-dim)
+   │
+   ▼
+Query Pinecone — fetch top 21 candidates
+   │
+   ▼
+Filter: max 3 chunks per article → keep top 7
+   │
+   ▼
+Build augmented prompt (system + context + question)
+   │
+   ▼
+Call gpt-5-mini → return response + context + prompts
+```
 
-## RAG Hyperparameters
+The app is deployed as **Python serverless functions on Vercel** — one file per endpoint, no persistent server. Each request is stateless: embed → retrieve → generate → return.
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| `chunk_size` | 300 tokens | Corpus median paragraph is 33 tokens; 512 spans 15 paragraphs and dilutes embeddings; 300 captures 3–5 focused paragraphs |
-| `overlap_ratio` | 0.2 | 102-token overlap bridges chunk boundaries without bloating index |
-| `top_k` | 7 | Slightly above the 3–5 general-text recommendation; needed to surface 3 distinct articles when C=5 could allow one article to dominate |
-| `max_chunks_per_article` | 5 | Prevents a single article from consuming all slots while still allowing enough depth to avoid missing key information within a relevant article |
+---
 
-For multi-result queries (type 2: "list 3 articles"), over-fetching 21 candidates (top_k × 3) with a cap of 5 chunks per article ensures diverse results while preserving depth.
+## Dataset
+
+7,682 English-language Medium articles. Fields: `title`, `text`, `url`, `authors`, `timestamp`, `tags`.
+
+---
+
+## Hyperparameter Decisions
+
+### Chunk size — 300 tokens
+
+The course recommends **512–1024 tokens** for general long-form text. We measured the actual paragraph structure of the corpus before deciding:
+
+| Statistic | Tokens |
+|-----------|--------|
+| Mean paragraph length | 44 |
+| Median paragraph length | 33 |
+| 90th percentile | 91 |
+| 99th percentile | 180 |
+
+66.8% of paragraphs are under 50 tokens. A 512-token chunk spans roughly 10–15 paragraphs and mixes multiple distinct ideas into one embedding vector — diluting cosine similarity for any single query. We chose **300 tokens** to capture 3–5 natural paragraphs (one coherent section) while keeping the embedding tight enough to retrieve precisely.
+
+### Chunking strategy — paragraph-aware
+
+Rather than a blind sliding window, we accumulate whole paragraphs until the next one would exceed the 300-token limit. The overlap carries trailing paragraphs (up to 20% of chunk size, ~60 tokens) into the next chunk. This guarantees no sentence is ever split mid-paragraph.
+
+### Overlap — 0.20 (20%)
+
+Medium articles sit between two course categories:
+
+| Category | Chunk size | Overlap |
+|---|---|---|
+| General, long articles | 512–1024 | 5–15% |
+| Conversational | 200–400 | — |
+
+The writing style is conversational (short punchy paragraphs) but total article length is long. We landed at 20% — slightly above the long-article recommendation — to compensate for the conversational style where a key idea sometimes bridges two paragraphs.
+
+### top_k — 7
+
+The course recommends **3–5 chunks** for general text. We chose **7** because our per-article cap (C=3) means a single highly-relevant article can occupy up to 3 slots, leaving only 4 for other articles. With k=5 and C=3, worst case is 3+2 = only 2 distinct articles — not enough for multi-result queries that ask for 3. With k=7 and C=3, worst case is 3+3+1 = **3 distinct articles guaranteed**.
+
+### max_chunks_per_article (C) — 3
+
+A cap is needed to prevent one article from dominating all k slots. Setting C too low (e.g. 1) risks missing information spread across sections of a genuinely relevant article. C=3 allows meaningful depth — three 300-token chunks cover ~900 tokens, roughly half a Medium article — while still leaving room for other sources.
+
+### Over-fetching
+
+Pinecone is queried for `top_k × 3 = 21` candidates. Results are walked in score order; any article that has already contributed C=3 chunks is skipped. The final context is exactly 7 chunks from at least 3 distinct articles.
+
+---
 
 ## API
 
 ### `POST /api/prompt`
 
+**Input:**
 ```json
-{ "question": "Your question here" }
+{ "question": "Your natural language question here" }
 ```
 
-Returns:
+**Output:**
 ```json
 {
-  "response": "...",
-  "context": [{ "article_id": "...", "title": "...", "chunk": "...", "score": 0.85 }],
-  "Augmented_prompt": { "System": "...", "User": "..." }
+  "response": "Final answer from the model.",
+  "context": [
+    {
+      "article_id": "42",
+      "title": "How The Media Can Prevent Copycat Suicides",
+      "chunk": "The Werther effect was coined in the late 1700s...",
+      "score": 0.4271
+    }
+  ],
+  "Augmented_prompt": {
+    "System": "You are a Medium-article assistant...",
+    "User": "Context:\n[1] Article: ...\n\nQuestion: ..."
+  }
 }
 ```
 
 ### `GET /api/stats`
 
 ```json
-{ "chunk_size": 512, "overlap_ratio": 0.2, "top_k": 5 }
+{ "chunk_size": 300, "overlap_ratio": 0.2, "top_k": 7 }
 ```
+
+---
+
+## Deployment
+
+**Vercel Python serverless** — each `api/*.py` file becomes an HTTP function. Streamlit was considered but ruled out: it runs a stateful WebSocket server and cannot expose the REST endpoints the assignment requires. Vercel's Python runtime handles this natively with no Node.js dependency.
+
+Environment variables required (set in Vercel dashboard):
+```
+OPENAI_API_KEY
+OPENAI_BASE_URL
+PINECONE_API_KEY
+PINECONE_INDEX_NAME
+```
+
+---
 
 ## Local Setup
 
 ```bash
-cp .env.example .env   # fill in credentials
+cp .env.example .env        # fill in credentials
 
-# Ingest (100-article test first)
 pip install -r scripts/requirements_ingest.txt
+
+# Test with 100 articles first
 python scripts/ingest.py --csv /path/to/medium-english-50mb.csv --limit 100
 
-# Full corpus
+# Full corpus (~$0.29, ~45k chunks)
 python scripts/ingest.py --csv /path/to/medium-english-50mb.csv
 
-# Run 5-question local test
+# Run 5-question end-to-end test
 python scripts/test_local.py
 ```

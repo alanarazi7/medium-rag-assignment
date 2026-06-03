@@ -43,8 +43,8 @@ The writing style is the more relevant dimension for chunking: a coherent idea i
 |-----------|-------|---------------|
 | `chunk_size` | 300 tokens | See rationale below |
 | `overlap_ratio` | 0.20 | Slightly above the 5–15% recommendation for long articles, chosen to account for the conversational style where a key sentence on a boundary may carry an idea across paragraphs |
-| `top_k` | 8 | Retrieves enough candidates to cover all query types (precise retrieval, multi-result listing, summary, recommendation) without padding the model context excessively |
-| `max_chunks_per_article` | 3 | Enforces retrieval diversity; with top_k=8 and C=3, at least 3 distinct articles are always represented in the context |
+| `top_k` | 5 | General text recommendation is 3–5; upper bound chosen to satisfy the multi-result query type (list 3 articles) while staying within range |
+| `max_chunks_per_article` | 2 | With top_k=5 and C=2, worst case is 2+2+1 = 3 distinct articles guaranteed, satisfying the multi-result query requirement |
 
 ### Chunk size rationale
 
@@ -62,7 +62,7 @@ We chose **300 tokens** as a principled middle ground: large enough to capture 3
 
 ### Over-fetching for diversity
 
-Pinecone is queried with `fetch_k = top_k × 3 = 24` candidates. Results are then filtered greedily: chunks are accepted in score order, skipping any article that has already contributed `max_chunks_per_article = 3` chunks. The final context contains exactly `top_k = 8` chunks.
+Pinecone is queried with `fetch_k = top_k × 3 = 15` candidates. Results are then filtered greedily: chunks are accepted in score order, skipping any article that has already contributed `max_chunks_per_article = 2` chunks. The final context contains exactly `top_k = 5` chunks, drawn from at least 3 distinct articles.
 
 ---
 
@@ -127,5 +127,5 @@ Output:
 ### `GET /api/stats`
 
 ```json
-{ "chunk_size": 512, "overlap_ratio": 0.2, "top_k": 8 }
+{ "chunk_size": 300, "overlap_ratio": 0.2, "top_k": 5 }
 ```

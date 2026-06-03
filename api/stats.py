@@ -7,7 +7,7 @@ class handler(BaseHTTPRequestHandler):
         data = {
             "chunk_size": 300,
             "overlap_ratio": 0.2,
-            "top_k": 8,
+            "top_k": 5,
         }
         payload = json.dumps(data).encode()
         self.send_response(200)

@@ -8,6 +8,7 @@ from pinecone import Pinecone
 CHUNK_SIZE = 512
 OVERLAP_RATIO = 0.2
 TOP_K = 5
+MAX_CHUNKS_PER_ARTICLE = 2
 
 SYSTEM_PROMPT = (
     "You are a Medium-article assistant that answers questions strictly and only "
@@ -57,14 +58,23 @@ class handler(BaseHTTPRequestHandler):
             query_vector = emb.data[0].embedding
 
             index = _build_pinecone_index()
-            results = index.query(vector=query_vector, top_k=TOP_K, include_metadata=True)
+            # Over-fetch so the per-article cap still yields TOP_K results
+            fetch_k = TOP_K * max(3, MAX_CHUNKS_PER_ARTICLE + 1)
+            results = index.query(vector=query_vector, top_k=fetch_k, include_metadata=True)
 
             context = []
+            chunks_per_article: dict[str, int] = {}
             for match in results.matches:
+                if len(context) == TOP_K:
+                    break
                 meta = match.metadata or {}
+                article_id = str(meta.get("article_id", ""))
+                if chunks_per_article.get(article_id, 0) >= MAX_CHUNKS_PER_ARTICLE:
+                    continue
+                chunks_per_article[article_id] = chunks_per_article.get(article_id, 0) + 1
                 context.append(
                     {
-                        "article_id": str(meta.get("article_id", "")),
+                        "article_id": article_id,
                         "title": str(meta.get("title", "")),
                         "chunk": str(meta.get("chunk", "")),
                         "score": float(match.score),

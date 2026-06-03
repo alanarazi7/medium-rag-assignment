@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medium Article RAG Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1.2rem;
+    }
+    label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      resize: vertical;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: #0070f3; }
+    button {
+      margin-top: 0.75rem;
+      padding: 0.65rem 1.4rem;
+      background: #0070f3;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #status { font-size: 0.85rem; color: #666; margin-top: 0.5rem; min-height: 1.2em; }
+    #response-card { display: none; }
+    .response-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    details { margin-top: 1rem; }
+    summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #555;
+      user-select: none;
+    }
+    .context-item {
+      background: #f9f9f9;
+      border-left: 3px solid #0070f3;
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+    .context-item .meta {
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: #333;
+    }
+    .context-item .chunk {
+      color: #555;
+      max-height: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+    }
+    .score { color: #0070f3; font-size: 0.78rem; }
+    .error-text { color: #d32f2f; font-size: 0.9rem; }
+    .examples { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    .example-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.82rem;
+      color: #333;
+      text-align: left;
+      cursor: pointer;
+      margin-top: 0;
+    }
+    .example-btn:hover { background: #f0f0f0; border-color: #bbb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Medium Article RAG Assistant</h1>
+    <p class="subtitle">Ask questions answered strictly from the Medium articles dataset.</p>
+
+    <div class="card">
+      <label for="question">Your question</label>
+      <textarea id="question" placeholder="e.g. List exactly 3 articles about education. Return only the titles."></textarea>
+      <button id="submit-btn" onclick="submitQuestion()">Ask</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="card">
+      <label>Example questions</label>
+      <div class="examples">
+        <button class="example-btn" onclick="fillExample(this)">Find an article that reframes marketing as a conversation with readers, aimed at writers who find self-promotion uncomfortable. Provide the title and author.</button>
+        <button class="example-btn" onclick="fillExample(this)">List exactly 3 articles about education. Return only the titles.</button>
+        <button class="example-btn" onclick="fillExample(this)">Find an article that argues past pandemics can spur innovation and recovery, and summarise its central argument.</button>
+        <button class="example-btn" onclick="fillExample(this)">I want practical, beginner-friendly advice on building habits that actually stick. Which article would you recommend, and why?</button>
+      </div>
+    </div>
+
+    <div class="card" id="response-card">
+      <label>Response</label>
+      <div class="response-text" id="response-text"></div>
+      <details>
+        <summary>Retrieved context chunks</summary>
+        <div id="context-list"></div>
+      </details>
+    </div>
+  </div>
+
+  <script>
+    function fillExample(btn) {
+      document.getElementById('question').value = btn.textContent.trim();
+    }
+
+    async function submitQuestion() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) return;
+
+      const btn = document.getElementById('submit-btn');
+      const status = document.getElementById('status');
+      const responseCard = document.getElementById('response-card');
+      const responseText = document.getElementById('response-text');
+      const contextList = document.getElementById('context-list');
+
+      btn.disabled = true;
+      status.textContent = 'Retrieving and generating...';
+      responseCard.style.display = 'none';
+      responseText.textContent = '';
+      contextList.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          responseText.innerHTML = `<span class="error-text">Error: ${data.error || res.statusText}</span>`;
+          responseCard.style.display = 'block';
+          return;
+        }
+
+        responseText.textContent = data.response;
+
+        (data.context || []).forEach((c, i) => {
+          const div = document.createElement('div');
+          div.className = 'context-item';
+          div.innerHTML = `
+            <div class="meta">[${i + 1}] ${escapeHtml(c.title)} <span class="score">(score: ${c.score.toFixed(4)})</span></div>
+            <div class="chunk">${escapeHtml(c.chunk)}</div>
+          `;
+          contextList.appendChild(div);
+        });
+
+        responseCard.style.display = 'block';
+        status.textContent = '';
+      } catch (err) {
+        responseText.innerHTML = `<span class="error-text">Network error: ${err.message}</span>`;
+        responseCard.style.display = 'block';
+        status.textContent = '';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('question').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitQuestion();
+    });
+  </script>
+</body>
+</html>

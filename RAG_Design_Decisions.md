@@ -43,8 +43,8 @@ The writing style is the more relevant dimension for chunking: a coherent idea i
 |-----------|-------|---------------|
 | `chunk_size` | 300 tokens | See rationale below |
 | `overlap_ratio` | 0.20 | Slightly above the 5–15% recommendation for long articles, chosen to account for the conversational style where a key sentence on a boundary may carry an idea across paragraphs |
-| `top_k` | 5 | General text recommendation is 3–5; upper bound chosen to satisfy the multi-result query type (list 3 articles) while staying within range |
-| `max_chunks_per_article` | 2 | With top_k=5 and C=2, worst case is 2+2+1 = 3 distinct articles guaranteed, satisfying the multi-result query requirement |
+| `top_k` | 7 | See rationale below |
+| `max_chunks_per_article` | 5 | See rationale below |
 
 ### Chunk size rationale
 
@@ -62,7 +62,15 @@ We chose **300 tokens** as a principled middle ground: large enough to capture 3
 
 ### Over-fetching for diversity
 
-Pinecone is queried with `fetch_k = top_k × 3 = 15` candidates. Results are then filtered greedily: chunks are accepted in score order, skipping any article that has already contributed `max_chunks_per_article = 2` chunks. The final context contains exactly `top_k = 5` chunks, drawn from at least 3 distinct articles.
+Pinecone is queried with `fetch_k = top_k × 3 = 21` candidates. Results are then filtered greedily: chunks are accepted in score order, skipping any article that has already contributed `max_chunks_per_article = 5` chunks. The final context contains exactly `top_k = 7` chunks.
+
+### top_k and max_chunks_per_article rationale
+
+The course recommends **k = 3–5** for general text. We chose **k = 7** and **C = 5** for the following reasons.
+
+**C = 5 (per-article cap):** A cap is necessary to prevent a single highly-relevant article from consuming all k slots and crowding out other articles entirely. However, setting C too low risks discarding genuinely useful context — if an article is the most relevant source for a query, having only 1–2 chunks from it may cause the model to miss key information spread across its sections. C = 5 strikes a balance: it allows meaningful depth within a single article while still leaving room for other sources.
+
+**k = 7 (total chunks):** With C = 5, a strict k = 5 could in the worst case return chunks from as few as 1 article (if all 5 slots are taken by the same source). To ensure that the system can surface at least 3 distinct articles — as required by the multi-result query type — k must be large enough to accommodate C chunks from a dominant article plus contributions from at least 2 others. k = 7 provides this headroom while remaining close to the general-text recommendation and avoiding unnecessary context padding.
 
 ---
 

@@ -20,10 +20,10 @@ We instead use **Vercel's Python serverless runtime**: each file in `api/` becom
 |-----------|-------|-----------|
 | `chunk_size` | 300 tokens | Corpus median paragraph is 33 tokens; 512 spans 15 paragraphs and dilutes embeddings; 300 captures 3–5 focused paragraphs |
 | `overlap_ratio` | 0.2 | 102-token overlap bridges chunk boundaries without bloating index |
-| `top_k` | 5 | Course recommendation for general text is 3–5; upper bound ensures multi-result queries (list 3 articles) are satisfied |
-| `max_chunks_per_article` | 2 | With k=5 and C=2, worst case is 2+2+1 = 3 distinct articles guaranteed |
+| `top_k` | 7 | Slightly above the 3–5 general-text recommendation; needed to surface 3 distinct articles when C=5 could allow one article to dominate |
+| `max_chunks_per_article` | 5 | Prevents a single article from consuming all slots while still allowing enough depth to avoid missing key information within a relevant article |
 
-For multi-result queries (type 2: "list 3 articles"), over-fetching 15 candidates (top_k × 3) and capping at 2 chunks per article guarantees at least 3 distinct articles in every response.
+For multi-result queries (type 2: "list 3 articles"), over-fetching 21 candidates (top_k × 3) with a cap of 5 chunks per article ensures diverse results while preserving depth.
 
 ## API
 

@@ -18,7 +18,7 @@ We instead use **Vercel's Python serverless runtime**: each file in `api/` becom
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
-| `chunk_size` | 512 tokens | Focused, single-topic chunks; better embedding signal than 1024 |
+| `chunk_size` | 300 tokens | Corpus median paragraph is 33 tokens; 512 spans 15 paragraphs and dilutes embeddings; 300 captures 3–5 focused paragraphs |
 | `overlap_ratio` | 0.2 | 102-token overlap bridges chunk boundaries without bloating index |
 | `top_k` | 8 | Covers all 4 query types with headroom; with C=3, guarantees at least 3 distinct articles |
 | `max_chunks_per_article` | 3 | Ensures retrieval diversity while still allowing deep context on a single article for summary queries |

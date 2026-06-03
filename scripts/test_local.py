@@ -16,6 +16,7 @@ from pinecone import Pinecone
 
 EMBEDDING_MODEL = "4UHRUIN-text-embedding-3-small"
 CHAT_MODEL = "4UHRUIN-gpt-5-mini"
+CHUNK_SIZE = 300
 TOP_K = 8
 MAX_CHUNKS_PER_ARTICLE = 3
 

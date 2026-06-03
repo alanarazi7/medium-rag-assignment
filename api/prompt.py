@@ -5,7 +5,7 @@ import os
 from openai import OpenAI
 from pinecone import Pinecone
 
-CHUNK_SIZE = 512
+CHUNK_SIZE = 300
 OVERLAP_RATIO = 0.2
 TOP_K = 8
 MAX_CHUNKS_PER_ARTICLE = 3

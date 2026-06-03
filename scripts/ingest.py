@@ -23,7 +23,7 @@ from openai import OpenAI
 from pinecone import Pinecone, ServerlessSpec
 from tqdm import tqdm
 
-CHUNK_SIZE = 512
+CHUNK_SIZE = 300
 OVERLAP_RATIO = 0.2
 EMBEDDING_MODEL = "4UHRUIN-text-embedding-3-small"
 DIMENSIONS = 1536

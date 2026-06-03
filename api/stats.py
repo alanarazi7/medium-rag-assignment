@@ -5,7 +5,7 @@ import json
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         data = {
-            "chunk_size": 512,
+            "chunk_size": 300,
             "overlap_ratio": 0.2,
             "top_k": 8,
         }

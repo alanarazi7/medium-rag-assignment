@@ -4,9 +4,9 @@ A Retrieval-Augmented Generation (RAG) system over ~7,600 Medium articles. Given
 
 ## Live URLs
 
-- **Demo UI**: `https://agents-course-alan-arazi-rag-assignment.vercel.app/`
-- **POST** `https://agents-course-alan-arazi-rag-assignment.vercel.app/api/prompt`
-- **GET** `https://agents-course-alan-arazi-rag-assignment.vercel.app/api/stats`
+- **Demo UI**: `https://medium-rag-assignment-livid.vercel.app/`
+- **POST** `https://medium-rag-assignment-livid.vercel.app/api/prompt`
+- **GET** `https://medium-rag-assignment-livid.vercel.app/api/stats`
 
 ---
 

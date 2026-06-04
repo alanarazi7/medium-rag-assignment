@@ -23,7 +23,7 @@ SYSTEM_PROMPT = (
 EMBEDDING_MODEL = "4UHRUIN-text-embedding-3-small"
 CHAT_MODEL = "4UHRUIN-gpt-5-mini"
 
-app = Flask(__name__, static_folder="public", static_url_path="")
+app = Flask(__name__)
 
 
 def _openai():
@@ -115,7 +115,3 @@ def stats():
     }))
 
 
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve(path):
-    return app.send_static_file("index.html")

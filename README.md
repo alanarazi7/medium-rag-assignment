@@ -19,7 +19,7 @@ Question
 Embed with text-embedding-3-small (1536-dim)
    │
    ▼
-Query Pinecone — fetch top 21 candidates
+Query Pinecone — fetch top 28 candidates
    │
    ▼
 Filter: max 3 chunks per article → keep top 7
@@ -81,7 +81,7 @@ A cap is needed to prevent one article from dominating all k slots. Setting C to
 
 ### Over-fetching
 
-Pinecone is queried for `top_k × 3 = 21` candidates. Results are walked in score order; any article that has already contributed C=3 chunks is skipped. The final context is exactly 7 chunks from at least 3 distinct articles.
+Pinecone is queried for `top_k × max(3, C+1) = 7 × 4 = 28` candidates. Results are walked in score order; any article that has already contributed C=3 chunks is skipped. Over-fetching is necessary because if Pinecone's top 7 results were dominated by one article, applying the cap would leave fewer than 7 final chunks — the buffer ensures all 7 slots are always filled. The final context contains exactly 7 chunks from at least 3 distinct articles.
 
 ---
 

@@ -153,10 +153,21 @@
       const contextList = document.getElementById('context-list');
 
       btn.disabled = true;
-      status.textContent = 'Retrieving and generating...';
       responseCard.style.display = 'none';
       responseText.textContent = '';
       contextList.innerHTML = '';
+
+      const steps = [
+        '🔍 Embedding your question...',
+        '📚 Retrieving relevant chunks from Pinecone...',
+        '✍️ Generating response...',
+      ];
+      let stepIdx = 0;
+      status.textContent = steps[stepIdx];
+      const stepTimer = setInterval(() => {
+        stepIdx = Math.min(stepIdx + 1, steps.length - 1);
+        status.textContent = steps[stepIdx];
+      }, 1200);
 
       try {
         const res = await fetch('/api/prompt', {
@@ -165,6 +176,9 @@
           body: JSON.stringify({ question }),
         });
         const data = await res.json();
+
+        clearInterval(stepTimer);
+        status.textContent = '✅ Done';
 
         if (!res.ok) {
           responseText.innerHTML = `<span class="error-text">Error: ${data.error || res.statusText}</span>`;
@@ -187,6 +201,7 @@
         responseCard.style.display = 'block';
         status.textContent = '';
       } catch (err) {
+        clearInterval(stepTimer);
         responseText.innerHTML = `<span class="error-text">Network error: ${err.message}</span>`;
         responseCard.style.display = 'block';
         status.textContent = '';

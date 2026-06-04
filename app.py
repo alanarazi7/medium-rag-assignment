@@ -80,12 +80,13 @@ def prompt():
             context.append({
                 "article_id": aid,
                 "title": str(meta.get("title", "")),
+                "authors": str(meta.get("authors", "")),
                 "chunk": str(meta.get("chunk", "")),
                 "score": float(match.score),
             })
 
         context_text = "\n\n".join(
-            f'[{i + 1}] Article: "{c["title"]}"\n{c["chunk"]}'
+            f'[{i + 1}] Article: "{c["title"]}" | Author: {c["authors"]}\n{c["chunk"]}'
             for i, c in enumerate(context)
         )
         user_prompt = f"Context:\n{context_text}\n\nQuestion: {question}"

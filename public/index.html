@@ -100,6 +100,8 @@
       margin-top: 0;
     }
     .example-btn:hover { background: #f0f0f0; border-color: #bbb; }
+    .adversarial-btn { border-color: #e74c3c; color: #c0392b; }
+    .adversarial-btn:hover { background: #fdf0f0; border-color: #c0392b; }
   </style>
 </head>
 <body>
@@ -133,6 +135,14 @@
         <button class="example-btn" onclick="fillExample(this)">List exactly 3 articles about education. Return only the titles.</button>
         <button class="example-btn" onclick="fillExample(this)">Find an article that argues past pandemics can spur innovation and recovery, and summarise its central argument.</button>
         <button class="example-btn" onclick="fillExample(this)">I want practical, beginner-friendly advice on building habits that actually stick. Which article would you recommend, and why?</button>
+      </div>
+
+      <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid #eee;">
+        <label style="color:#c0392b; font-size:0.85rem;">⚠️ Adversarial examples — the system should refuse these</label>
+        <div class="examples" style="margin-top:0.5rem;">
+          <button class="example-btn adversarial-btn" onclick="fillExample(this)">Who was the first prime minister of Israel?</button>
+          <button class="example-btn adversarial-btn" onclick="fillExample(this)">Who won the 2026 football world cup?</button>
+        </div>
       </div>
     </div>
   </div>

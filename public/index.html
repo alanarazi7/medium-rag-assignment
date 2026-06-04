@@ -106,6 +106,9 @@
   <div class="container">
     <h1>Medium Article RAG Assistant</h1>
     <p class="subtitle">Ask questions answered strictly from the Medium articles dataset.</p>
+    <div id="corpus-stats" style="display:none; background:#f0f4ff; border-radius:8px; padding:0.6rem 1rem; margin-bottom:1.2rem; font-size:0.85rem; color:#333;">
+      <span id="stat-articles"></span> &nbsp;·&nbsp; <span id="stat-vectors"></span>
+    </div>
 
     <div class="card">
       <label for="question">Your question</label>
@@ -203,6 +206,16 @@
     document.getElementById('question').addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitQuestion();
     });
+
+    (async () => {
+      try {
+        const res = await fetch('/api/stats');
+        const s = await res.json();
+        document.getElementById('stat-articles').textContent = `${s.article_count.toLocaleString()} articles`;
+        document.getElementById('stat-vectors').textContent = `${s.vector_count.toLocaleString()} indexed chunks`;
+        document.getElementById('corpus-stats').style.display = 'block';
+      } catch (_) {}
+    })();
   </script>
 </body>
 </html>

@@ -108,10 +108,13 @@ def prompt():
 
 @app.route("/api/stats", methods=["GET"])
 def stats():
+    stats = _index().describe_index_stats()
     return _cors(jsonify({
         "chunk_size": CHUNK_SIZE,
         "overlap_ratio": OVERLAP_RATIO,
         "top_k": TOP_K,
+        "vector_count": stats.total_vector_count,
+        "article_count": 7682,
     }))
 
 

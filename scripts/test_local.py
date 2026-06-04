@@ -19,6 +19,7 @@ CHAT_MODEL = "4UHRUIN-gpt-5-mini"
 CHUNK_SIZE = 300
 TOP_K = 7
 MAX_CHUNKS_PER_ARTICLE = 3
+FETCH_K = 50
 
 SYSTEM_PROMPT = (
     "You are a Medium-article assistant that answers questions strictly and only "
@@ -49,8 +50,7 @@ def ask(client: OpenAI, index, question: str) -> dict:
     emb = client.embeddings.create(model=EMBEDDING_MODEL, input=question)
     query_vector = emb.data[0].embedding
 
-    fetch_k = TOP_K * max(3, MAX_CHUNKS_PER_ARTICLE + 1)
-    results = index.query(vector=query_vector, top_k=fetch_k, include_metadata=True)
+    results = index.query(vector=query_vector, top_k=FETCH_K, include_metadata=True)
 
     context = []
     chunks_per_article: dict[str, int] = {}

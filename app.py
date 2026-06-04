@@ -65,6 +65,8 @@ def prompt():
             vector=query_vector, top_k=fetch_k, include_metadata=True
         ).matches
 
+        # Walk candidates in score order, applying per-article cap.
+        # If one article dominates all fetch_k results, context may have fewer than TOP_K chunks.
         context = []
         seen: dict[str, int] = {}
         for match in matches:
